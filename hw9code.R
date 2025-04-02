@@ -38,6 +38,9 @@ MLEs <- optim(fn = llweibull,
               par = c(1,1),
               data = dat.precip.long$Precipitation,
               neg=T)
+
+(MLEs$par <- exp(MLEs$par))
+
 weibull.likelihood <- -MLEs$value
 
 
@@ -61,6 +64,9 @@ mles.gamma <- optim(par = c(1,1),
                data=dat.precip.long$Precipitation,
                neg=T)
 
+mles.gamma$par
+
+
 gamma.likelihood <- -mles.gamma$value
 
 print(gamma.likelihood)
@@ -82,6 +88,8 @@ mles.log <- optim(par = c(1,1),
                fn = lllognorm,
                data=dat.precip.long$Precipitation,
                neg=T)
+mles.log$par
+
 
 log.likelihood <- -mles.log$value
 
@@ -96,16 +104,40 @@ exp(weibull.likelihood-gamma.likelihood)
 
 exp(weibull.likelihood-log.likelihood)
 
-#########      C       ##########
+#########      E        ##########
 
 exp(gamma.likelihood-log.likelihood)
 
 
 
+ggdat.weibull <- tibble(x = seq(0,15,length.out=1000)) |>
+  mutate(pdf.mle = dweibull(x=x, shape=MLEs$par[1], scale=MLEs$par[2]))
+
+ggdat.gamma <- tibble(x = seq(0,15,length.out=1000)) |>
+  mutate(pdf.mle = dgamma(x=x, shape = mles.gamma$par[1], rate = mles.gamma$par[2]))
+
+ggdat.log <- tibble(x = seq(0,15,length.out=1000)) |>
+  mutate(pdf.mle = dlnorm(x=x, meanlog=mles.log$par[1], sdlog=mles.log$par[2]))
+
+distribution <- ggplot() +
+  geom_histogram(data=dat.precip.long,
+                 aes(x=Precipitation, y=after_stat(density)),
+                 breaks=seq(0, 15, 1),
+                 color="lightgrey")+
+  geom_line(data=ggdat.gamma,
+            aes(x=x, y=pdf.mle, color="Gamma"))+
+  geom_line(data=ggdat.weibull,
+            aes(x=x, y=pdf.mle, color="Weibull"))+
+  geom_line(data=ggdat.log,
+            aes(x=x, y=pdf.mle, color="Log"))+
+  geom_hline(yintercept = 0)+
+  theme_bw()+
+  xlab("Precipitation (Inches)")+
+  ylab("Density")+
+  labs(color="")
 
 
-
-
+ggsave("distribution.pdf", plot = distribution, scale =1)
 
 
 
